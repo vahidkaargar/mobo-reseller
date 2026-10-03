@@ -1,0 +1,26 @@
+<svg width="202" height="202" viewBox="0 0 202 202" fill="none" xmlns="http://www.w3.org/2000/svg"
+     class="size-[120px] mask-[linear-gradient(to_top,rgba(0,0,0,0.2),black)] text-emerald-500/80 md:size-[200px] dark:text-emerald-800">
+    <style>
+        @keyframes dash {
+        to {
+        stroke-dashoffset: 0;
+        }
+        }
+        .animated-path {
+        stroke-dasharray: 4 7;
+        stroke-dashoffset: 11;
+        animation: dash 2s linear infinite;
+        }
+        .circle-path {
+        animation-delay: 0.5s;
+        }
+    </style>
+    <g id="Group">
+        <path id="Vector" d="M53.0146 107.96L80.4348 135.799L148.985 66.2017" stroke="currentColor" stroke-opacity="1"
+              stroke-width="2" stroke-miterlimit="10" stroke-linecap="square"></path>
+        <path id="Vector_2" class="animated-path circle-path"
+              d="M101 201C156.228 201 201 156.228 201 101C201 45.7715 156.228 1 101 1C45.7715 1 1 45.7715 1 101C1 156.228 45.7715 201 101 201Z"
+              stroke="currentColor" stroke-opacity="1" stroke-width="2" stroke-miterlimit="10"
+              stroke-linecap="round"></path>
+    </g>
+</svg>

@@ -1,0 +1,8 @@
+input {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+[data-flux-pagination] {
+    padding: 10px;
+}
