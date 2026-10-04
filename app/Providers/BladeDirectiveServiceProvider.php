@@ -20,8 +20,8 @@ class BladeDirectiveServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Blade::directive('currency', fn($expr) => "<?php echo format_currency($expr); ?>");
-        Blade::directive('exchange', fn($expr) => "<?php echo exchange($expr); ?>");
-        Blade::directive('percentage', fn($expr) => "<?php echo $expr . '%'; ?>");
+        Blade::directive('currency', fn ($expr) => "<?php echo format_currency($expr); ?>");
+        Blade::directive('exchange', fn ($expr) => "<?php echo exchange($expr); ?>");
+        Blade::directive('percentage', fn ($expr) => "<?php echo $expr . '%'; ?>");
     }
 }

@@ -7,10 +7,6 @@ use App\Services\Suppliers\Factories\SupplierApiFactory;
 
 class BrandIntegrationService
 {
-    /**
-     * @param array $suppliers
-     * @return array
-     */
     public function integrate(array $suppliers): array
     {
         // TODO: you can cache output

@@ -175,6 +175,6 @@ return [
     |
     */
     'supported_currencies' => [
-        'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'
+        'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY',
     ],
 ];

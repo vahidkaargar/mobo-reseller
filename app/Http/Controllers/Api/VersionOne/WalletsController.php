@@ -8,6 +8,6 @@ class WalletsController extends Controller
 {
     public function index()
     {
-//        auth()->user()->wallets
+        //        auth()->user()->wallets
     }
 }

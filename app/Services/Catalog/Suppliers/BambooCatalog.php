@@ -11,6 +11,7 @@ class BambooCatalog implements CatalogInterface
     public function categories(): array
     {
         $brands = BambooBrand::query()->orderBy('name')->get();
+
         return BambooBrandResource::collection($brands)->toArray(request());
     }
 
@@ -26,6 +27,7 @@ class BambooCatalog implements CatalogInterface
         $products = BambooBrand::query()
             ->where('products.id', intval($product_id))
             ->value('products');
+
         return collect($products)->where('id', $product_id)->first();
     }
 }

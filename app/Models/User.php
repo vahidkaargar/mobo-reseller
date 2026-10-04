@@ -6,19 +6,19 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laratrust\Contracts\LaratrustUser;
 use Laratrust\Traits\HasRolesAndPermissions;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use vahidkaargar\LaravelWallet\Traits\HasWallets;
 use Laravel\Sanctum\HasApiTokens;
+use vahidkaargar\LaravelWallet\Traits\HasWallets;
 
-class User extends Authenticatable implements MustVerifyEmail, LaratrustUser
+class User extends Authenticatable implements LaratrustUser, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable, HasRolesAndPermissions, HasWallets;
+    use HasApiTokens, HasFactory, HasRolesAndPermissions, HasWallets, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -66,7 +66,7 @@ class User extends Authenticatable implements MustVerifyEmail, LaratrustUser
         return Str::of($this->name)
             ->explode(' ')
             ->take(2)
-            ->map(fn($word) => Str::substr($word, 0, 1))
+            ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
 

@@ -7,14 +7,11 @@ use Illuminate\Support\Arr;
 
 class BambooBrandAdapter implements SupplierJsonNormalizerInterface
 {
-    /**
-     * @param array $data
-     * @return array
-     */
     public function normalize(array $data): array
     {
         return Arr::map($data, function ($item) {
             $item = optional($item);
+
             return [
                 'supplier' => 'bamboo',
                 'id' => $item['internalId'],
