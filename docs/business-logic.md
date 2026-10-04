@@ -129,13 +129,17 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
   - `Failed`: unlock, FAILED.
   - `PartialFailed`, or `Succeeded` with missing cards: store what arrived, keep funds locked, PARTIAL_FAILED.
   - Anything else: poll again; after 40 attempts the order stays PROCESSING with funds locked.
-  - Orders left locked are logged to the `bamboo` channel for admin review. No admin tooling exists for them yet.
+  - Orders left locked are logged to the `bamboo` channel and listed on `/admin/orders` ("Needs attention only").
+    `OrderResolutionService` lets an admin **Release** (unlock, FAILED) or **Charge** (unlock + withdraw the full
+    sale amount, SUCCEEDED) a PROCESSING or PARTIAL_FAILED order; both are logged with the admin id. There is no
+    partial charge: for a partial delivery the admin picks one of the two and settles the difference outside the app.
 - Assumed Bamboo response shape (unverified, no sample available): `{status, items: [{productId, cards: [...]}]}`.
   A wrong guess cannot move money: it leaves the order PROCESSING or PARTIAL_FAILED with funds locked.
 - Lock-then-charge means the purchase must fit in `balance - locked`. Wallet **credit is not usable** for
   orders, because the wallet package validates locks against balance only.
-- `orders/index` lists the user's orders. Its filter controls are still placeholders.
-- `transactions/index` renders static sample rows.
+- `orders/index` lists the user's orders with status and date-range filters.
+- `/admin/orders` lists every order with search (order id, customer name/email), status filter and the resolution actions above.
+- `/admin/users/{user}` shows real totals (sales, orders, cards sold, USD balance) and orders per day for the last 15 days.
 
 ### 7. Users, admin, API
 - Fortify login with rate limit 5/min per email+IP; 2FA challenge view; email verification is required for app routes.
@@ -160,7 +164,7 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 | 6 | Fixed | `ExchangeService::rates()`, `exchange()` | `rates()` returned null before the first refresh (TypeError) and `exchange()` priced at 0 when a rate was missing. Now `rates()` returns `[]`, same-currency conversions skip the lookup, and a missing rate throws. |
 | 7 | Fixed | `orders` migration | `paid_at` and `completed_at` were NOT NULL; now nullable. |
 | 8 | Fixed | `FeeCalculatorService::currency()` | Unused method writing an undeclared property; removed. Constructors no longer `return $this`. `SupplierApiFactory::create()` is static, matching its only caller. |
-| 9 | Low | `orders/index`, `transactions/index`, `admin/users/show` chart | Static mock data. |
+| 9 | Fixed | `orders/index`, `admin/users/show`, `admin/orders/index` | Static mock data replaced with real orders, stats and a 15-day chart; unrouted `transactions/*` and `wallets/create` views deleted; the missing `admin/orders/index` page now exists. |
 
 ## Open questions
 
@@ -169,4 +173,4 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 | 1 | Does `exchange_currencies.rates[X]` mean X per 1 USD, or USD per 1 X? If X per USD, `exchange()` must divide, not multiply. | Unknown. Do not change until confirmed. |
 | 2 | Should wallet credit fund orders? Lock-then-charge cannot use credit (package validates locks against balance). | Built as lock-then-charge; credit not usable. |
 | 3 | Bamboo order response shape (`status`, `items[].productId`, `items[].cards`) and whether `GET orders/{id}` takes the RequestId. | Unverified. Test against the Bamboo sandbox before enabling. |
-| 4 | How should admins resolve PARTIAL_FAILED and stuck PROCESSING orders (partial charge, refund)? | No tooling yet; funds stay locked. |
+| 4 | Should a partial delivery allow a partial charge? | Built as Release or Charge-in-full on `/admin/orders`; partial charge not supported. |

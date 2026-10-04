@@ -5,20 +5,33 @@ use Livewire\Attributes\Computed;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Carbon;
-use App\Enums\{TransactionTypeEnum, TransactionExecutorEnum, BambooOrderStatusEnum};
+use App\Enums\OrderStatusEnum;
+use Illuminate\Database\Eloquent\Builder;
 
 new class extends Component {
     use WithPagination;
 
-    public int $walletId;
-    public string $createdAt;
-    public string $operation;
-    public string $executedBy;
+    public string $status = '';
+    public array $createdAt = [];
+
+    public function updated(): void
+    {
+        $this->resetPage();
+    }
 
     #[Computed]
     public function orders(): LengthAwarePaginator
     {
-        return auth()->user()->orders()->withCount('items')->latest()->paginate(15);
+        $from = filled($this->createdAt['start'] ?? null) ? Carbon::parse($this->createdAt['start'])->startOfDay() : null;
+        $to = filled($this->createdAt['end'] ?? null) ? Carbon::parse($this->createdAt['end'])->endOfDay() : null;
+
+        return auth()->user()->orders()
+            ->withCount('items')
+            ->when(filled($this->status), fn (Builder $query) => $query->where('status', $this->status))
+            ->when($from, fn (Builder $query) => $query->where('created_at', '>=', $from))
+            ->when($to, fn (Builder $query) => $query->where('created_at', '<=', $to))
+            ->latest()
+            ->paginate(15);
     }
 }; ?>
 <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl max-w-6xl">
@@ -29,50 +42,22 @@ new class extends Component {
                 Orders
             </flux:heading>
         </div>
-        <div class="relative grid grid-cols-14 gap-4 p-4 md:p-8 opacity-70 items-end">
-            <div class="col-span-2">
-                <flux:input type="text" label="Order barcode" placeholder="Barcode" clearable></flux:input>
-            </div>
-            <div class="col-span-2">
-                <flux:select wire:model="status" clearable variant="listbox"
-                             placeholder="Status"
-                             label="Status">
-                    @foreach(BambooOrderStatusEnum::cases() as $status)
-                        <flux:select.option :value="$status->name">
-                            <div class="grid auto-cols-max grid-flow-col gap-2 items-center">
-                                <div class="capitalize">
-                                    {{$status->value}}
-                                </div>
-                            </div>
-                        </flux:select.option>
+        <div class="relative grid md:grid-cols-6 gap-4 p-4 md:p-8 opacity-70 items-end">
+            <div class="md:col-span-2">
+                <flux:select wire:model.live="status" clearable variant="listbox" placeholder="Status" label="Status">
+                    @foreach(OrderStatusEnum::cases() as $case)
+                        <flux:select.option :value="$case->value">{{ $case->name() }}</flux:select.option>
                     @endforeach
                 </flux:select>
             </div>
-            <div class="col-span-2">
-                <flux:select wire:model="executedBy" clearable variant="listbox"
-                             placeholder="Executed by"
-                             label="Executed by">
-                    @foreach(TransactionExecutorEnum::cases() as $operator)
-                        <flux:select.option :value="$operator->name">
-                            <div class="grid auto-cols-max grid-flow-col gap-2 items-center">
-                                <div class="capitalize">
-                                    {{$operator->value}}
-                                </div>
-                            </div>
-                        </flux:select.option>
-                    @endforeach
-                </flux:select>
-            </div>
-            <div class="col-span-4">
-                <flux:date-picker mode="range" wire:model="createdAt" clearable
+            <div class="md:col-span-3">
+                <flux:date-picker mode="range" wire:model.live="createdAt" clearable
                                   presets="today yesterday thisWeek last7Days thisMonth" label="Date range"/>
-            </div>
-            <div>
-                <flux:button class="w-32 cursor-pointer" variant="filled" icon="funnel">Filter</flux:button>
             </div>
         </div>
         <div>
-            <flux:table class="p-4 md:p-8" align="center" :paginate="$this->orders">
+            <flux:table class="p-4 md:p-8" align="center" :paginate="$this->orders"
+                        wire:key="orders-{{ md5(json_encode([$status, $createdAt])) }}">
                 <flux:table.columns>
                     <flux:table.column>{{__('Order')}}</flux:table.column>
                     <flux:table.column align="center" width="120">{{__('Items')}}</flux:table.column>

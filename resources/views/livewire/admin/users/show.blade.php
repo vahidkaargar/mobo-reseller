@@ -1,7 +1,10 @@
 <?php
 
 use App\Models\BambooBrand;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
+use App\Enums\OrderStatusEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Computed;
@@ -14,23 +17,6 @@ use App\Enums\{TransactionTypeEnum, TransactionExecutorEnum, BambooOrderStatusEn
 new class extends Component {
     use WithPagination;
 
-    public array $ordersChartData = [
-        ['date' => '2025-11-15', 'invoices' => 165],
-        ['date' => '2025-11-14', 'invoices' => 143],
-        ['date' => '2025-11-13', 'invoices' => 157],
-        ['date' => '2025-11-12', 'invoices' => 12],
-        ['date' => '2025-11-11', 'invoices' => 41],
-        ['date' => '2025-11-10', 'invoices' => 128],
-        ['date' => '2025-11-09', 'invoices' => 36],
-        ['date' => '2025-11-08', 'invoices' => 90],
-        ['date' => '2025-11-07', 'invoices' => 269],
-        ['date' => '2025-11-06', 'invoices' => 201],
-        ['date' => '2025-11-05', 'invoices' => 165],
-        ['date' => '2025-11-04', 'invoices' => 143],
-        ['date' => '2025-11-03', 'invoices' => 157],
-        ['date' => '2025-11-02', 'invoices' => 220],
-        ['date' => '2025-11-01', 'invoices' => 199],
-    ];
 
     public User $user;
     public string $action = 'products';
@@ -59,6 +45,43 @@ new class extends Component {
         return $this->user->orders()->paginate();
     }
 
+    /**
+     * @return array{sale: float, orders: int, items: int, balance: float}
+     */
+    #[Computed]
+    public function stats(): array
+    {
+        $succeeded = $this->user->orders()->where('status', OrderStatusEnum::SUCCEEDED);
+        $wallet = $this->user->wallets()->where('currency', 'USD')->first();
+
+        return [
+            'sale' => (float) $succeeded->sum('sale_amount'),
+            'orders' => $this->user->orders()->count(),
+            'items' => (int) OrderItem::query()->whereIn('order_id', $succeeded->select('id'))->sum('quantity'),
+            'balance' => $wallet ? (float) $wallet->available_funds->toDecimal() : 0.0,
+        ];
+    }
+
+    /**
+     * Orders per day for the last 15 days, oldest first.
+     *
+     * @return list<array{date: string, orders: int}>
+     */
+    #[Computed]
+    public function ordersChartData(): array
+    {
+        $perDay = $this->user->orders()
+            ->where('created_at', '>=', now()->subDays(14)->startOfDay())
+            ->get(['created_at'])
+            ->countBy(fn (Order $order) => $order->created_at->toDateString());
+
+        return collect(range(14, 0))
+            ->map(fn (int $daysAgo) => now()->subDays($daysAgo)->toDateString())
+            ->map(fn (string $date) => ['date' => $date, 'orders' => $perDay->get($date, 0)])
+            ->values()
+            ->all();
+    }
+
     #[Computed]
     public function brands()
     {
@@ -76,20 +99,20 @@ new class extends Component {
 
         <div class="grid mb-4 grid-cols-2 md:grid-cols-4 gap-4 opacity-70">
             <flux:card class="border-0">
+                <flux:text>Sales</flux:text>
+                <flux:heading size="xl" class="mt-2 tabular-nums">@currency($this->stats['sale'])</flux:heading>
+            </flux:card>
+            <flux:card class="border-0">
                 <flux:text>Orders</flux:text>
-                <flux:heading size="xl" class="mt-2 tabular-nums">$32,100</flux:heading>
+                <flux:heading size="xl" class="mt-2 tabular-nums">{{ number_format($this->stats['orders']) }}</flux:heading>
             </flux:card>
             <flux:card class="border-0">
-                <flux:text>Invoices</flux:text>
-                <flux:heading size="xl" class="mt-2 tabular-nums">2,100</flux:heading>
-            </flux:card>
-            <flux:card class="border-0">
-                <flux:text>Items</flux:text>
-                <flux:heading size="xl" class="mt-2 tabular-nums">4,223</flux:heading>
+                <flux:text>Cards sold</flux:text>
+                <flux:heading size="xl" class="mt-2 tabular-nums">{{ number_format($this->stats['items']) }}</flux:heading>
             </flux:card>
             <flux:card class="border-0">
                 <flux:text>Balance</flux:text>
-                <flux:heading size="xl" class="mt-2 tabular-nums">$1,241</flux:heading>
+                <flux:heading size="xl" class="mt-2 tabular-nums">@currency($this->stats['balance'])</flux:heading>
             </flux:card>
         </div>
 
@@ -97,10 +120,10 @@ new class extends Component {
 
             <div
                 class="relative overflow-hidden rounded-xl bg-linear-to-br dark:from-zinc-700 from-zinc-200 p-4 space-y-6">
-                <flux:heading>Invoices</flux:heading>
-                <flux:chart wire:model="ordersChartData" class="aspect-3/1">
+                <flux:heading>Orders, last 15 days</flux:heading>
+                <flux:chart :value="$this->ordersChartData" class="aspect-3/1">
                     <flux:chart.svg>
-                        <flux:chart.line field="invoices" class="text-violet-400"/>
+                        <flux:chart.line field="orders" class="text-violet-400"/>
 
                         <flux:chart.axis axis="x" field="date">
                             <flux:chart.axis.line/>
@@ -119,7 +142,7 @@ new class extends Component {
                         <flux:chart.tooltip.heading
                             field="date"
                             :format="['year' => 'numeric', 'month' => 'numeric', 'day' => 'numeric']"/>
-                        <flux:chart.tooltip.value field="invoices" label="Invoices"/>
+                        <flux:chart.tooltip.value field="orders" label="Orders"/>
                     </flux:chart.tooltip>
                 </flux:chart>
 
@@ -130,7 +153,7 @@ new class extends Component {
                 <flux:heading>Transactions</flux:heading>
                 <flux:chart wire:model="ordersChartData" class="aspect-3/1">
                     <flux:chart.svg>
-                        <flux:chart.line field="invoices" class="text-violet-400"/>
+                        <flux:chart.line field="orders" class="text-violet-400"/>
 
                         <flux:chart.axis axis="x" field="date">
                             <flux:chart.axis.line/>
@@ -148,7 +171,7 @@ new class extends Component {
                     <flux:chart.tooltip>
                         <flux:chart.tooltip.heading field="date"
                                                     :format="['year' => 'numeric', 'month' => 'numeric', 'day' => 'numeric']"/>
-                        <flux:chart.tooltip.value field="invoices" label="Invoices"/>
+                        <flux:chart.tooltip.value field="orders" label="Orders"/>
                     </flux:chart.tooltip>
                 </flux:chart>
 
