@@ -4,6 +4,8 @@ use App\Facades\Cart;
 use App\Models\BambooBrand;
 use App\Services\ExchangeService;
 use App\Services\CartService;
+use App\Services\CheckoutService;
+use App\Exceptions\CheckoutException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -19,10 +21,37 @@ new class extends Component {
     public string $supplierAndCategoryId;
     public array $products = [];
     public array $cart;
+    public string $walletSlug = '';
 
     public function mount(): void
     {
+        $this->walletSlug = $this->wallets()->first()?->slug ?? '';
+    }
 
+    #[Computed]
+    public function wallets(): Collection
+    {
+        return auth()->user()->wallets()
+            ->where('is_active', true)
+            ->where('currency', 'USD')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function checkout(CheckoutService $checkout): void
+    {
+        $this->validate(['walletSlug' => ['required', 'string']]);
+
+        try {
+            $order = $checkout->checkout(auth()->user(), $this->walletSlug);
+        } catch (CheckoutException $e) {
+            Flux::toast(text: $e->getMessage(), heading: 'Checkout', variant: 'danger', position: 'bottom end');
+
+            return;
+        }
+
+        Flux::toast(text: "Order #{$order->id} placed. Cards appear once the supplier delivers them.", heading: 'Checkout', variant: 'success', position: 'bottom end');
+        $this->redirectRoute('orders.index', navigate: true);
     }
 
     public function updated($property, $value): void
@@ -277,22 +306,29 @@ new class extends Component {
             <div class="grid grid-cols-2 gap-x-4 p-4">
                 <div>
                     <flux:select
-                        wire:model="walletId"
+                        wire:model="walletSlug"
                         class="relative"
                         variant="listbox"
                         placeholder="Choose wallet...">
-                        <flux:select.option value="usdt" selected>
-                            <div class="grid auto-cols-max grid-flow-col gap-2 items-center">
-                                <flux:icon.wallet variant="micro"></flux:icon.wallet>
-                                <div>
-                                    USDT
+                        @foreach($this->wallets() as $wallet)
+                            <flux:select.option :value="$wallet->slug">
+                                <div class="grid auto-cols-max grid-flow-col gap-2 items-center">
+                                    <flux:icon.wallet variant="micro"></flux:icon.wallet>
+                                    <div>{{ $wallet->name }}</div>
                                 </div>
-                            </div>
-                        </flux:select.option>
+                            </flux:select.option>
+                        @endforeach
                     </flux:select>
                 </div>
                 <div>
-                    <flux:button variant="primary" class="w-full">Checkout</flux:button>
+                    <flux:button
+                        variant="primary"
+                        class="w-full"
+                        wire:click="checkout"
+                        wire:loading.attr="disabled"
+                        :disabled="blank($this->cartItems())">
+                        Checkout
+                    </flux:button>
                 </div>
             </div>
 

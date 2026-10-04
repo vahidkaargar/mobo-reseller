@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'bamboo' => [
+        // Bamboo account that orders are charged to (one account per currency on the Bamboo side).
+        'account_id' => env('BAMBOO_ACCOUNT_ID'),
+    ],
+
 ];

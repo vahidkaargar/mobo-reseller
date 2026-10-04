@@ -1,14 +1,25 @@
 <?php
 
+use Illuminate\Pagination\LengthAwarePaginator;
+use Livewire\Attributes\Computed;
 use Livewire\Volt\Component;
+use Livewire\WithPagination;
 use Illuminate\Support\Carbon;
 use App\Enums\{TransactionTypeEnum, TransactionExecutorEnum, BambooOrderStatusEnum};
 
 new class extends Component {
+    use WithPagination;
+
     public int $walletId;
     public string $createdAt;
     public string $operation;
     public string $executedBy;
+
+    #[Computed]
+    public function orders(): LengthAwarePaginator
+    {
+        return auth()->user()->orders()->withCount('items')->latest()->paginate(15);
+    }
 }; ?>
 <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl max-w-6xl">
 
@@ -61,30 +72,32 @@ new class extends Component {
             </div>
         </div>
         <div>
-            <flux:table class="p-4 md:p-8" align="center">
+            <flux:table class="p-4 md:p-8" align="center" :paginate="$this->orders">
                 <flux:table.columns>
-                    <flux:table.column>Barcode</flux:table.column>
+                    <flux:table.column>{{__('Order')}}</flux:table.column>
+                    <flux:table.column align="center" width="120">{{__('Items')}}</flux:table.column>
                     <flux:table.column align="center" width="120">{{__('Amount')}}</flux:table.column>
                     <flux:table.column align="center" width="120">{{__('Status')}}</flux:table.column>
-                    <flux:table.column align="center" width="120">{{__('Executed by')}}</flux:table.column>
                     <flux:table.column align="center" width="160">{{__('Created at')}}</flux:table.column>
                     <flux:table.column align="center" width="160">{{__('Paid at')}}</flux:table.column>
                 </flux:table.columns>
                 <flux:table.rows>
-                    <flux:table.row>
-                        <flux:table.cell>#12345678</flux:table.cell>
-                        <flux:table.cell align="center" variant="strong">$49.00</flux:table.cell>
-                        <flux:table.cell align="center">
-                            <flux:badge
-                                color="{{BambooOrderStatusEnum::CREATED->color()}}">{{BambooOrderStatusEnum::CREATED}}</flux:badge>
-                        </flux:table.cell>
-                        <flux:table.cell align="center">
-                            <flux:badge variant="solid"
-                                        color="{{TransactionExecutorEnum::USER->color()}}">{{TransactionExecutorEnum::USER}}</flux:badge>
-                        </flux:table.cell>
-                        <flux:table.cell align="center">2025/07/12 12:24</flux:table.cell>
-                        <flux:table.cell align="center">2025/07/12 12:24</flux:table.cell>
-                    </flux:table.row>
+                    @forelse($this->orders as $order)
+                        <flux:table.row :key="$order->id">
+                            <flux:table.cell>#{{ $order->id }}</flux:table.cell>
+                            <flux:table.cell align="center">{{ $order->items_count }}</flux:table.cell>
+                            <flux:table.cell align="center" variant="strong">@currency($order->sale_amount)</flux:table.cell>
+                            <flux:table.cell align="center">
+                                <flux:badge color="{{ $order->status->color() }}">{{ $order->status->name() }}</flux:badge>
+                            </flux:table.cell>
+                            <flux:table.cell align="center">{{ $order->created_at->format('Y/m/d H:i') }}</flux:table.cell>
+                            <flux:table.cell align="center">{{ $order->paid_at?->format('Y/m/d H:i') ?? '-' }}</flux:table.cell>
+                        </flux:table.row>
+                    @empty
+                        <flux:table.row>
+                            <flux:table.cell colspan="6" class="text-center py-10">{{ __('No orders yet.') }}</flux:table.cell>
+                        </flux:table.row>
+                    @endforelse
                 </flux:table.rows>
             </flux:table>
         </div>
