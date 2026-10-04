@@ -15,7 +15,7 @@ Checkout, order creation, and Bamboo order placement are not built yet.
 | Framework | Laravel 12 (`laravel/framework` v12.56), PHP ^8.2 (CI uses 8.4) |
 | UI | Livewire 3 + Volt class-based single-file components, Flux + Flux Pro 2.x, Tailwind v4, Vite |
 | Auth | Fortify (login, 2FA, password reset, email verification), Sanctum (API tokens) |
-| Authorization | Laratrust 8 (`roles`, `permissions` tables). Installed, not enforced yet |
+| Authorization | Laratrust 8 (`roles`, `permissions` tables). Role `admin` guards `/admin/*` |
 | Money | `vahidkaargar/laravel-wallet` ^0.4 (trait `HasWallets` on `User`) |
 | Supplier SDK | `vahidkaargar/bamboo-card-portal` ^1.0 (`bamboo()` helper) |
 | Other | `mongodb/laravel-mongodb` ^5.4, `intervention/image` ^3 (Imagick), `pragmarx/countries` |
@@ -120,6 +120,8 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 - Fortify login with rate limit 5/min per email+IP; 2FA challenge view; email verification is required for app routes.
 - Admin pages (`/admin/users`, `/admin/users/{user}`, `/settings`, `/fees`, `/admin/orders`, `/admin/brands`)
   edit `fee_percentage`, `is_active`, `can_place_order`, `has_api`, and per-product fees.
+- Admin access: Laratrust role `admin` (created by migration `insert_admin_role`). Grant with
+  `php artisan app:grant-admin-role you@example.com` (`--revoke` to remove). The sidebar Admin group renders only for admins.
 - `developers/tokens`: users with `has_api` can create Sanctum tokens (name must be alphanumeric, stored uppercased)
   and delete their own tokens. `routes/api.php` is not registered in `bootstrap/app.php`, so no API route is live.
 - `/thumbnail?url=&w=&h=&q=&fit=` is public. It downloads the URL, caches it under `storage/app/images/cache`,
@@ -129,7 +131,7 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 
 | # | Severity | Location | Issue |
 |---|---|---|---|
-| 1 | High, security | `routes/web.php` admin group `middleware([])` | Any verified user can open `/admin/*` and change fees, flags, and API access. Fix plan: Laratrust `role:admin`. |
+| 1 | Fixed | `routes/web.php` admin group | Was `middleware([])`: any verified user could open `/admin/*`. Now `role:admin` (Laratrust), persistent on Livewire updates. |
 | 2 | High, security | `ThumbnailController` | Unauthenticated SSRF: fetches any URL server-side. |
 | 3 | High, data | `users.fee_percentage`, `product_fees.fee_percentage` decimal(2,2) | Max storable value is 0.99. Default 5 and admin range up to 9.99 overflow on MySQL strict mode. |
 | 4 | Medium | whole app | `is_active` and `can_place_order` are never enforced. |

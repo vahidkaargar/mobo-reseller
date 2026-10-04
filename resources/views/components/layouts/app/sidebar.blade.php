@@ -51,6 +51,7 @@
             </flux:navlist.item>
         </flux:navlist.group>
 
+        @role('admin')
         <flux:navlist.group class="mt-4" heading="Admin" expandable>
             <flux:navlist.item
                 :current="request()->routeIs('admin.users.index')"
@@ -70,6 +71,7 @@
             </flux:navlist.item>
             <flux:navlist.item href="#">Settings</flux:navlist.item>
         </flux:navlist.group>
+        @endrole
 
     </flux:navlist>
 

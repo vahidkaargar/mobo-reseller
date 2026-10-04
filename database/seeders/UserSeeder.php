@@ -23,6 +23,7 @@ class UserSeeder extends Seeder
         ]);
         $user->email_verified_at = now();
         $user->save();
+        $user->addRole('admin');
 
         $user->createWallet([
             'name' => 'USD Wallet',

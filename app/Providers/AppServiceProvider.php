@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Services\CartService;
 use App\Services\FeeCalculatorService;
 use Illuminate\Support\ServiceProvider;
+use Laratrust\Middleware\Role;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,5 +32,8 @@ class AppServiceProvider extends ServiceProvider
     {
         //
         include app_path('Helpers/helpers.php');
+
+        // Re-check route roles on Livewire update requests (e.g. admin component actions).
+        Livewire::addPersistentMiddleware([Role::class]);
     }
 }
