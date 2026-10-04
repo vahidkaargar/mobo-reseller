@@ -27,12 +27,12 @@ Checkout, order creation, and Bamboo order placement are not built yet.
 
 | Table | Purpose | Notes |
 |---|---|---|
-| `users` | Resellers and admins | Extra columns: `can_place_order` (bool, 0), `fee_percentage` decimal(2,2) default 5, `has_api` (bool, 0), `is_active` (bool, 1), Fortify 2FA columns |
+| `users` | Resellers and admins | Extra columns: `can_place_order` (bool, 0), `fee_percentage` decimal(5,2) default 5, `has_api` (bool, 0), `is_active` (bool, 1), Fortify 2FA columns |
 | `wallets` | One row per user wallet | `slug` unique per user, `currency`, `balance`, `credit`, `locked` decimal(15,2), `is_active` |
 | `wallet_transactions` | Ledger | ULID id; `type` deposit/withdraw/lock/unlock/credit_grant/credit_revoke/credit_repay/interest_charge; `status` pending/approved/rejected/reversed; `reference`, `meta` json |
 | `orders` | Customer order | id starts at 1000; `user_id`, `wallet_id`, `status` (`OrderStatusEnum`), `purchase_amount`, `sale_amount`, `paid_at`, `completed_at` (both NOT NULL today) |
 | `order_items` | Line items | `supplier` (`SuppliersEnum`), `relation` json (supplier ids), `quantity`, `purchase_amount`, `profit_percentage`, `sale_amount`, `cards` (`encrypted:array`, the card codes) |
-| `product_fees` | Per-user, per-product fee override | unique (`user_id`, `supplier_name`, `supplier_id`); `fee_percentage` decimal(2,2) |
+| `product_fees` | Per-user, per-product fee override | unique (`user_id`, `supplier_name`, `supplier_id`); `fee_percentage` decimal(5,2) |
 | `personal_access_tokens` | Sanctum | |
 | `roles`, `permissions`, `role_user`, `permission_user`, `permission_role` | Laratrust | soft deletes |
 
@@ -131,7 +131,7 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 |---|---|---|---|
 | 1 | High, security | `routes/web.php` admin group `middleware([])` | Any verified user can open `/admin/*` and change fees, flags, and API access. Fix plan: Laratrust `role:admin`. |
 | 2 | High, security | `ThumbnailController` | Unauthenticated SSRF: fetches any URL server-side. |
-| 3 | High, data | `users.fee_percentage`, `product_fees.fee_percentage` decimal(2,2) | Max storable value is 0.99. Default 5 and admin range up to 9.99 overflow on MySQL strict mode. |
+| 3 | Fixed | `users.fee_percentage`, `product_fees.fee_percentage` | Were decimal(2,2) (max 0.99) while default is 5 and the admin range is up to 9.99. Widened to decimal(5,2). |
 | 4 | Medium | whole app | `is_active` and `can_place_order` are never enforced. |
 | 5 | Medium | `AppServiceProvider` | `CartService` and `FeeCalculatorService` are singletons capturing `auth()->user()` at first resolve: stale in queue workers / Octane, null when unauthenticated. |
 | 6 | Medium | `ExchangeService::rates()` | Returns null before the first refresh but declares `array` (TypeError). The first page load after deploy fails. |
