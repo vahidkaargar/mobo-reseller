@@ -4,6 +4,7 @@ B2B gift-card reseller portal. Resellers buy Bamboo gift cards at a per-user mar
 from an internal wallet. Laravel 12 + Livewire/Volt + Flux Pro, SQL (MySQL in production) plus MongoDB.
 
 Full domain write-up, data model, flows, known defects, and open questions: @docs/business-logic.md
+Owner actions nothing in code can fix (secrets, network, supplier verification, deploy steps): `docs/blockers.md`
 
 ## Rules
 - @.claude/rules/workflow.md : plan before any change (hard rule), output modes, delivery format.
