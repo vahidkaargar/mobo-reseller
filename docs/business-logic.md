@@ -118,6 +118,8 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 
 ### 7. Users, admin, API
 - Fortify login with rate limit 5/min per email+IP; 2FA challenge view; email verification is required for app routes.
+- Deactivated users (`is_active = 0`): the `active` middleware on the app route group logs them out on their next
+  request and redirects to login with an error. Admins toggle the flag on `/admin/users/{user}/settings`.
 - Admin pages (`/admin/users`, `/admin/users/{user}`, `/settings`, `/fees`, `/admin/orders`, `/admin/brands`)
   edit `fee_percentage`, `is_active`, `can_place_order`, `has_api`, and per-product fees.
 - `developers/tokens`: users with `has_api` can create Sanctum tokens (name must be alphanumeric, stored uppercased)
@@ -132,7 +134,7 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 | 1 | High, security | `routes/web.php` admin group `middleware([])` | Any verified user can open `/admin/*` and change fees, flags, and API access. Fix plan: Laratrust `role:admin`. |
 | 2 | High, security | `ThumbnailController` | Unauthenticated SSRF: fetches any URL server-side. |
 | 3 | High, data | `users.fee_percentage`, `product_fees.fee_percentage` decimal(2,2) | Max storable value is 0.99. Default 5 and admin range up to 9.99 overflow on MySQL strict mode. |
-| 4 | Medium | whole app | `is_active` and `can_place_order` are never enforced. |
+| 4 | Fixed | `EnsureUserIsActive` middleware, `CheckoutService` | `is_active` is enforced on every authenticated web route (and on Livewire updates): deactivated users are logged out and sent to login. `can_place_order` is enforced at checkout. |
 | 5 | Medium | `AppServiceProvider` | `CartService` and `FeeCalculatorService` are singletons capturing `auth()->user()` at first resolve: stale in queue workers / Octane, null when unauthenticated. |
 | 6 | Medium | `ExchangeService::rates()` | Returns null before the first refresh but declares `array` (TypeError). The first page load after deploy fails. |
 | 7 | Low | `orders` migration | `paid_at` and `completed_at` are NOT NULL; a CREATED order has neither. |
