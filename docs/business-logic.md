@@ -154,7 +154,7 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 - `/thumbnail/brands/{brandId}?w=&h=&q=&fit=` (auth + verified) looks up the brand logo URL in `bamboo_brands`,
   downloads it once (10 s timeout), caches it under `storage/app/images/cache`, and returns WebP.
 
-## Known defects (not fixed; each gets its own plan and PR)
+## Known defects (audit of 2026-10-04; all fixed on main)
 
 | # | Severity | Location | Issue |
 |---|---|---|---|
@@ -174,9 +174,13 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 |---|---|---|
 | 1 | Does `exchange_currencies.rates[X]` mean X per 1 USD, or USD per 1 X? If X per USD, `exchange()` must divide, not multiply. | Unknown. Do not change until confirmed. |
 | 2 | Should wallet credit fund orders? Lock-then-charge cannot use credit (package validates locks against balance). | Built as lock-then-charge; credit not usable. |
+| 3 | Bamboo order response shape (`status`, `items[].productId`, `items[].cards`) and whether `GET orders/{id}` takes the RequestId. | Unverified. Test against the Bamboo sandbox before enabling. |
+| 4 | Should a partial delivery allow a partial charge? | Built as Release or Charge-in-full on `/admin/orders`; partial charge not supported. |
 
 ## Roadmap decisions
+
 Decision notes only. Each item needs its own plan before implementation.
+
 ### Redis (cache, queue, locks)
 - **Motivation.** `CACHE_STORE`, `QUEUE_CONNECTION` and `SESSION_DRIVER` are all `database` today. Three
   things depend on them being fast and atomic: the `exchange.<currency>.lock` and `checkout:<user>` cache locks,
@@ -192,6 +196,7 @@ Decision notes only. Each item needs its own plan before implementation.
 - **Pick.** (b). Sessions are low-volume; locks and queues are the hot path.
 - **Prerequisites.** `ext-redis` or `predis/predis` (pin a version), a Redis service in CI (`redis:7`), the
   `WALLET_LOG_CHANNEL` and `bamboo` log channels unchanged. Add `php artisan queue:work` to deployment.
+
 ### Elasticsearch (catalog search)
 - **Motivation.** Brand search is `where('name', 'like', "%term%")` on `bamboo_brands` in MongoDB
   (`admin/brands/index`, `admin/users/fees`, `admin/users/show`). Resellers pick a brand from a Flux
@@ -206,6 +211,7 @@ Decision notes only. Each item needs its own plan before implementation.
 - **Pick.** Defer. Start with (a) text index when the catalog exceeds a few thousand brands; move to (c) if
   product-level search is required. Elasticsearch only if analytics over the catalog is also needed.
 - **Prerequisites.** Decide whether resellers search products or only brands; measure current catalog size.
+
 ### Docker (dev parity)
 - **Motivation.** Local setup needs PHP >= 8.4, `ext-mongodb` 2.x, `ext-imagick`, MongoDB 8, Node 22 and Flux
   Pro credentials. CI and the cloud setup script each reproduce this by hand (`.github/workflows/*.yml`,
@@ -218,11 +224,14 @@ Decision notes only. Each item needs its own plan before implementation.
   more to maintain. (c) Keep host installs and document them.
 - **Pick.** (a) once Redis lands, so the compose file covers app, MongoDB, Redis and a queue worker.
 - **Prerequisites.** Flux Pro `auth.json` mounted or passed as a build secret, never baked into the image.
+
 ## Follow-ups
+
 | # | Item | Status |
 |---|---|---|
-| 1 | `composer.json` says `php ^8.2` while `composer.lock` and CI need 8.4; bump to `^8.4` | Separate PR |
-| 3 | Bamboo order response shape (`status`, `items[].productId`, `items[].cards`) and whether `GET orders/{id}` takes the RequestId. | Unverified. Test against the Bamboo sandbox before enabling. |
-| 4 | Should a partial delivery allow a partial charge? | Built as Release or Charge-in-full on `/admin/orders`; partial charge not supported. |
+| 1 | `composer.json` said `php ^8.2` while `composer.lock` and CI need 8.4 | Done: `^8.4` |
+| 2 | `vendor/bin/pint --test` failed on 61 pre-existing files | Done: repo is Pint-clean; next, switch the lint workflow to `pint --test` |
+| 3 | Baseline bug: `BrandIntegrationService` called `SupplierApiFactory::create()` statically | Done: method is static |
+| 4 | Admin tooling for PARTIAL_FAILED / stuck PROCESSING orders | Done: `/admin/orders` Release / Charge |
 | 5 | Wallet "Charge" button (top-up) does nothing; needs a payment provider decision | Open |
 | 6 | FX rate direction unverified | Open, see question 1 |
