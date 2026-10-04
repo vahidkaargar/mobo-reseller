@@ -145,3 +145,62 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 |---|---|---|
 | 1 | Does `exchange_currencies.rates[X]` mean X per 1 USD, or USD per 1 X? If X per USD, `exchange()` must divide, not multiply. | Unknown. Do not change until confirmed. |
 | 2 | Checkout details: lock-then-withdraw vs. direct withdraw; partial failure refunds; which wallet currency. | To settle in the checkout plan. |
+
+## Roadmap decisions
+
+Decision notes only. Each item needs its own plan before implementation.
+
+### Redis (cache, queue, locks)
+- **Motivation.** `CACHE_STORE`, `QUEUE_CONNECTION` and `SESSION_DRIVER` are all `database` today. Three
+  things depend on them being fast and atomic: the `exchange.<currency>.lock` and `checkout:<user>` cache locks,
+  the `PlaceSupplierOrder` / `SyncSupplierOrder` queue (polling every 30 s per open order), and the FX refresh job.
+  On MySQL these compete with order writes for the same connection pool.
+- **Touchpoints.** `config/cache.php`, `config/queue.php`, `config/session.php`, `.env.example`,
+  `ExchangeService::rates()`, `CheckoutService::checkout()`, the two jobs. No code changes: the lock and queue
+  APIs are driver-agnostic.
+- **Options.** (a) Redis for cache + queue + session, one instance: simplest, one more service to run.
+  (b) Redis for cache + queue only, sessions stay in MySQL: survives a Redis restart without logging users out.
+  (c) Stay on database drivers and add Horizon-style monitoring later: no new infra, but lock contention and
+  queue polling load grow with order volume.
+- **Pick.** (b). Sessions are low-volume; locks and queues are the hot path.
+- **Prerequisites.** `ext-redis` or `predis/predis` (pin a version), a Redis service in CI (`redis:7`), the
+  `WALLET_LOG_CHANNEL` and `bamboo` log channels unchanged. Add `php artisan queue:work` to deployment.
+
+### Elasticsearch (catalog search)
+- **Motivation.** Brand search is `where('name', 'like', "%term%")` on `bamboo_brands` in MongoDB
+  (`admin/brands/index`, `admin/users/fees`, `admin/users/show`). Resellers pick a brand from a Flux
+  `searchable` select that loads every brand into the page (`orders/create` → `categories()`). Both scale
+  linearly with catalog size; neither searches product names or handles typos.
+- **Touchpoints.** `BambooCatalog::categories()`, the three admin pages, `FetchBambooCatalog` (index on sync),
+  a new `CatalogInterface::search()` method.
+- **Options.** (a) MongoDB Atlas Search or a text index on `name` + `products.name`: no new service, limited
+  fuzziness, Atlas Search needs Atlas. (b) Elasticsearch / OpenSearch via Laravel Scout + a driver: typo tolerance,
+  per-field boosting, one more service and an index-sync step in the catalog command. (c) Meilisearch via Scout:
+  simpler to run than Elasticsearch, good typo tolerance, fewer analytics features.
+- **Pick.** Defer. Start with (a) text index when the catalog exceeds a few thousand brands; move to (c) if
+  product-level search is required. Elasticsearch only if analytics over the catalog is also needed.
+- **Prerequisites.** Decide whether resellers search products or only brands; measure current catalog size.
+
+### Docker (dev parity)
+- **Motivation.** Local setup needs PHP >= 8.4, `ext-mongodb` 2.x, `ext-imagick`, MongoDB 8, Node 22 and Flux
+  Pro credentials. CI and the cloud setup script each reproduce this by hand (`.github/workflows/*.yml`,
+  `.claude/cloud-setup.sh`).
+- **Touchpoints.** `laravel/sail` is already in `require-dev` but has no `docker-compose.yml`; `composer run dev`
+  assumes host PHP.
+- **Options.** (a) Laravel Sail with the `mongodb` service and a custom runtime image that adds `ext-mongodb` and
+  `ext-imagick`: closest to Laravel conventions, Sail's PHP 8.4 image needs the two extensions added.
+  (b) Hand-written `docker-compose.yml` + `Dockerfile` (php:8.4-fpm, Caddy, MongoDB, Redis): full control,
+  more to maintain. (c) Keep host installs and document them.
+- **Pick.** (a) once Redis lands, so the compose file covers app, MongoDB, Redis and a queue worker.
+- **Prerequisites.** Flux Pro `auth.json` mounted or passed as a build secret, never baked into the image.
+
+## Follow-ups
+
+| # | Item | Status |
+|---|---|---|
+| 1 | `composer.json` says `php ^8.2` while `composer.lock` and CI need 8.4; bump to `^8.4` | Separate PR |
+| 2 | `vendor/bin/pint --test` fails on 61 pre-existing files | Format-only PR after the open PRs merge |
+| 3 | Baseline bug: `BrandIntegrationService` calls `SupplierApiFactory::create()` statically (runtime error) | Separate PR with the service fixes |
+| 4 | Admin tooling for PARTIAL_FAILED / stuck PROCESSING orders | Separate PR: admin orders page with Release / Charge |
+| 5 | Wallet "Charge" button (top-up) does nothing; needs a payment provider decision | Open |
+| 6 | FX rate direction unverified | Open, see question 1 |

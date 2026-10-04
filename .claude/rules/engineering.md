@@ -11,7 +11,9 @@ For non-trivial decisions: name 2-3 options with a one-line tradeoff each, pick 
 
 ## Research (only when the task needs external facts)
 Triggers: version-specific behavior, breaking changes, unfamiliar library/API, conflicting documentation.
-1. Library/framework/API questions: Laravel Boost `search-docs` MCP tool first, then Context7 MCP, then official docs.
+1. Library/framework/API questions: Laravel Boost `search-docs` MCP tool first (Laravel ecosystem), then the Context7 MCP
+   server (`resolve-library-id` + `get-library-docs`, any library), then official docs.
+   MongoDB schema or data questions: the read-only `mongodb` MCP server (`.mcp.json`), never ad-hoc shell queries.
 2. Rank sources: official docs > the library's own source code (`vendor/`) > maintained repos > reputable engineering blogs. Prefer 2+ independent confirmations for load-bearing claims.
 3. Thin evidence: give the best answer, label it "unverified, based on <source>", say what would confirm it. Never fabricate sources.
 
