@@ -120,7 +120,7 @@ new class extends Component {
                                         class="rounded border border-zinc-600 ms-3"
                                         width="24"
                                         height="24"
-                                        src="{{route('thumbnail', ['url' => $brand->image, 'w' => 32, 'h' => 32, 'q' => 95, 'fit' => 'cover'])}}">
+                                        src="{{route('thumbnail', ['brandId' => $brand->brand_id, 'w' => 32, 'h' => 32, 'q' => 95, 'fit' => 'cover'])}}">
                                 @else
                                     <flux:avatar class="ms-3" size="xs" icon="gift"/>
                                 @endif

@@ -27,7 +27,7 @@ new class extends Component {
                         <flux:avatar
                             :href="$brand->image"
                             target="_blank"
-                            :src="route('thumbnail', ['url' => $brand->image, 'w' => 32, 'h' => 32, 'q' => 95, 'fit' => 'cover'])"/>
+                            :src="route('thumbnail', ['brandId' => $brand->brand_id, 'w' => 32, 'h' => 32, 'q' => 95, 'fit' => 'cover'])"/>
                     @endif
                     {{$brand->name}}
                 </flux:heading>

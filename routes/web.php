@@ -8,11 +8,11 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-
-Route::get('/thumbnail', ThumbnailController::class)->name('thumbnail');
-
-
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    Route::get('/thumbnail/brands/{brandId}', ThumbnailController::class)
+        ->whereNumber('brandId')
+        ->name('thumbnail');
 
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
@@ -23,17 +23,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
     Volt::route('settings/2fa', 'settings.2fa')->middleware(['password.confirm'])->name('settings.2fa');
 
-
     // Developers
     Route::redirect('developers', '/developers/tokens');
     Volt::route('developers/tokens', 'developers.tokens')->name('developers.tokens');
     Volt::route('developers/documentation', 'developers.documentation')->name('developers.documentation');
 
-
     Volt::route('/orders', 'orders.index')->name('orders.index');
     Volt::route('/orders/create', 'orders.create')->name('orders.create');
     Volt::route('/wallets', 'wallets.index')->name('wallets.index');
-
 
     // admin routes
     Route::middleware(['role:admin'])->prefix('/admin')->name('admin.')->group(function () {
@@ -51,4 +48,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

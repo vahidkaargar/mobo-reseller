@@ -124,15 +124,15 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
   `php artisan app:grant-admin-role you@example.com` (`--revoke` to remove). The sidebar Admin group renders only for admins.
 - `developers/tokens`: users with `has_api` can create Sanctum tokens (name must be alphanumeric, stored uppercased)
   and delete their own tokens. `routes/api.php` is not registered in `bootstrap/app.php`, so no API route is live.
-- `/thumbnail?url=&w=&h=&q=&fit=` is public. It downloads the URL, caches it under `storage/app/images/cache`,
-  and returns WebP.
+- `/thumbnail/brands/{brandId}?w=&h=&q=&fit=` (auth + verified) looks up the brand logo URL in `bamboo_brands`,
+  downloads it once (10 s timeout), caches it under `storage/app/images/cache`, and returns WebP.
 
 ## Known defects (not fixed; each gets its own plan and PR)
 
 | # | Severity | Location | Issue |
 |---|---|---|---|
 | 1 | Fixed | `routes/web.php` admin group | Was `middleware([])`: any verified user could open `/admin/*`. Now `role:admin` (Laratrust), persistent on Livewire updates. |
-| 2 | High, security | `ThumbnailController` | Unauthenticated SSRF: fetches any URL server-side. |
+| 2 | Fixed | `ThumbnailController` | Was an unauthenticated SSRF (fetched any `?url=`). Now `/thumbnail/brands/{brandId}` behind auth; URL read from `bamboo_brands`. |
 | 3 | High, data | `users.fee_percentage`, `product_fees.fee_percentage` decimal(2,2) | Max storable value is 0.99. Default 5 and admin range up to 9.99 overflow on MySQL strict mode. |
 | 4 | Medium | whole app | `is_active` and `can_place_order` are never enforced. |
 | 5 | Medium | `AppServiceProvider` | `CartService` and `FeeCalculatorService` are singletons capturing `auth()->user()` at first resolve: stale in queue workers / Octane, null when unauthenticated. |
