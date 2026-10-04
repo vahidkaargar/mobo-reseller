@@ -21,7 +21,7 @@ Provenance and pinned commits: `.claude/skills/SOURCES.md`.
 | Dev server | `composer run dev` (serve + queue + pail + vite) |
 | Tests | `php artisan test` or `vendor/bin/pest --filter=...` |
 | Format | `vendor/bin/pint` (CI: `vendor/bin/pint` on PHP 8.4) |
-| Static analysis | `composer analyse` (Larastan level 5, `phpstan-baseline.neon` holds 19 pre-existing errors) |
+| Static analysis | `composer analyse` (Larastan level 5, `phpstan-baseline.neon` holds 13 pre-existing errors) |
 | Duplication | `npx --yes jscpd@5.4.0` (config `.jscpd.json`, fails above 7%) |
 | Architecture | `vendor/bin/pest tests/Unit/ArchTest.php` (Pest `arch()` rules) |
 | All gates | `composer quality` |

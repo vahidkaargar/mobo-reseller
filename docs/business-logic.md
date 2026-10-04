@@ -88,7 +88,8 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 - **FX** (`ExchangeService::rates($base)`): reads `exchange_currencies.rates` for the base (default `usd`).
   At most once per 120 s (cache lock) it dispatches a queued closure that refreshes rates from
   `https://mobo.gifts/api/bamboo/exchange?base=<base>` (`body.rates[].{currencyCode,value}`).
-  `exchange()` multiplies the amount by `rates[fromCurrency]`. The direction of that rate is unconfirmed (see Open questions).
+  `exchange()` multiplies the amount by `rates[fromCurrency]`; same-currency amounts pass through, a missing or zero
+  rate throws `RuntimeException` (never a silent 0 price). The direction of the rate is unconfirmed (see Open questions).
 - Displayed prices on the order page use the same formula per unit (`orders/create.blade.php`).
 
 ### 4. Cart (`CartService`, facade `Cart`)
@@ -153,10 +154,10 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 | 2 | High, security | `ThumbnailController` | Unauthenticated SSRF: fetches any URL server-side. |
 | 3 | High, data | `users.fee_percentage`, `product_fees.fee_percentage` decimal(2,2) | Max storable value is 0.99. Default 5 and admin range up to 9.99 overflow on MySQL strict mode. |
 | 4 | Medium | whole app | `is_active` and `can_place_order` are never enforced. |
-| 5 | Medium | `AppServiceProvider` | `CartService` and `FeeCalculatorService` are singletons capturing `auth()->user()` at first resolve: stale in queue workers / Octane, null when unauthenticated. |
-| 6 | Medium | `ExchangeService::rates()` | Returns null before the first refresh but declares `array` (TypeError). The first page load after deploy fails. |
+| 5 | Fixed | `AppServiceProvider` | `CartService` and `FeeCalculatorService` were singletons capturing `auth()->user()`; now `scoped()` (per request) and they throw a clear `RuntimeException` when unauthenticated. |
+| 6 | Fixed | `ExchangeService::rates()`, `exchange()` | `rates()` returned null before the first refresh (TypeError) and `exchange()` priced at 0 when a rate was missing. Now `rates()` returns `[]`, same-currency conversions skip the lookup, and a missing rate throws. |
 | 7 | Fixed | `orders` migration | `paid_at` and `completed_at` were NOT NULL; now nullable. |
-| 8 | Low | `FeeCalculatorService::currency()` | Writes an undeclared property (deprecated since PHP 8.2). |
+| 8 | Fixed | `FeeCalculatorService::currency()` | Unused method writing an undeclared property; removed. Constructors no longer `return $this`. `SupplierApiFactory::create()` is static, matching its only caller. |
 | 9 | Low | `orders/index`, `transactions/index`, `admin/users/show` chart | Static mock data. |
 
 ## Open questions
