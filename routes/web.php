@@ -9,10 +9,12 @@ Route::get('/', function () {
 })->name('home');
 
 
-Route::get('/thumbnail', ThumbnailController::class)->name('thumbnail');
-
 
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    Route::get('/thumbnail/brands/{brandId}', ThumbnailController::class)
+        ->whereNumber('brandId')
+        ->name('thumbnail');
 
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
