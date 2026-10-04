@@ -2,18 +2,11 @@
 
 namespace App\Services;
 
-
 use App\Enums\SuppliersEnum;
 
 class CatalogService
 {
-    private SuppliersEnum $supplier;
-
-    public function __construct(SuppliersEnum $suppliersEnum)
-    {
-        $this->supplier = $suppliersEnum;
-        return $this;
-    }
+    public function __construct(private readonly SuppliersEnum $supplier) {}
 
     public function categories(): array
     {

@@ -19,12 +19,6 @@ parameters:
 			path: app/Helpers/numbers_helper.php
 
 		-
-			message: '#^Parameter \#1 \$string of static method Illuminate\\Support\\Number\:\:parseFloat\(\) expects string, float given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Helpers/numbers_helper.php
-
-		-
 			message: '#^Parameter \#2 \$string of function explode expects string, float\|int given\.$#'
 			identifier: argument.type
 			count: 1
@@ -73,18 +67,6 @@ parameters:
 			path: app/Services/CartService.php
 
 		-
-			message: '#^Method App\\Services\\CartService\:\:__construct\(\) with return type void returns \$this\(App\\Services\\CartService\) but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: app/Services/CartService.php
-
-		-
-			message: '#^Method App\\Services\\CatalogService\:\:__construct\(\) with return type void returns \$this\(App\\Services\\CatalogService\) but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: app/Services/CatalogService.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\ExchangeCurrency\:\:\$rates\.$#'
 			identifier: property.notFound
 			count: 1
@@ -95,21 +77,3 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Services/ExchangeService.php
-
-		-
-			message: '#^Access to an undefined property App\\Services\\FeeCalculatorService\:\:\$currency\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/FeeCalculatorService.php
-
-		-
-			message: '#^Method App\\Services\\FeeCalculatorService\:\:__construct\(\) with return type void returns \$this\(App\\Services\\FeeCalculatorService\) but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: app/Services/FeeCalculatorService.php
-
-		-
-			message: '#^Static call to instance method App\\Services\\Suppliers\\Factories\\SupplierApiFactory\:\:create\(\)\.$#'
-			identifier: method.staticCall
-			count: 1
-			path: app/Services/Suppliers/Integrations/BrandIntegrationService.php

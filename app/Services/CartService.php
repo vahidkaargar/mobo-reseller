@@ -4,25 +4,21 @@ namespace App\Services;
 
 use App\Models\Cart;
 use App\Models\User;
+use RuntimeException;
 use Throwable;
 
 class CartService
 {
-    private Cart $cart;
+    private ?Cart $cart = null;
 
-    public function __construct(private ?User $user)
-    {
-        $this->cart = $this->get();
-
-        return $this;
-    }
+    public function __construct(private readonly ?User $user) {}
 
     /**
      * @throws Throwable
      */
     public function items(): array
     {
-        $items = $this->cart->refresh()->items ?? [];
+        $items = $this->cart()->refresh()->items ?? [];
 
         return $this->prepareProducts($items);
     }
@@ -65,17 +61,23 @@ class CartService
         return $this->save([]);
     }
 
-    private function get(): Cart
+    private function cart(): Cart
     {
-        return $this->user->cart()->firstOrNew();
+        return $this->cart ??= $this->user()->cart()->firstOrNew();
+    }
+
+    private function user(): User
+    {
+        return $this->user ?? throw new RuntimeException('CartService needs an authenticated user.');
     }
 
     private function save(array $items): Cart
     {
-        $this->cart->items = $items;
-        $this->cart->save();
+        $cart = $this->cart();
+        $cart->items = $items;
+        $cart->save();
 
-        return $this->cart;
+        return $cart;
     }
 
     /**
@@ -84,7 +86,7 @@ class CartService
     private function prepareProducts($items): array
     {
         foreach ($items as &$item) {
-            $quote = app(PricingService::class)->quote($this->user, $item['supplier'], $item['product_id'], $item['purchase'], $item['quantity']);
+            $quote = app(PricingService::class)->quote($this->user(), $item['supplier'], $item['product_id'], $item['purchase'], $item['quantity']);
             $item['amount'] = $quote['sale'];
             $product = $quote['product'];
             unset($product['sale'], $product['discount']);
