@@ -5,6 +5,7 @@ from an internal wallet. Laravel 12 + Livewire/Volt + Flux Pro, SQL (MySQL in pr
 
 Full domain write-up, data model, flows, known defects, and open questions: @docs/business-logic.md
 Owner actions nothing in code can fix (secrets, network, supplier verification, deploy steps): `docs/blockers.md`
+Full read-only audit (security, money flow, catalog, UI, infra; open findings and fix order): `docs/audit-2026-10-04.md`
 
 ## Rules
 - @.claude/rules/workflow.md : plan before any change (hard rule), output modes, delivery format.

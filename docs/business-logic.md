@@ -156,6 +156,8 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 
 ## Known defects (audit of 2026-10-04; all fixed on main)
 
+The defects below are fixed. A second, full audit found new open issues, including a fatal error on the order page; see `docs/audit-2026-10-04.md`.
+
 | # | Severity | Location | Issue |
 |---|---|---|---|
 | 1 | Fixed | `routes/web.php` admin group | Was `middleware([])`: any verified user could open `/admin/*`. Now `role:admin` (Laratrust), persistent on Livewire updates. |
