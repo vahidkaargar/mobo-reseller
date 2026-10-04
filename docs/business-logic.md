@@ -5,8 +5,8 @@ supplier (through the `mobo.gifts` proxy and the `vahidkaargar/bamboo-card-porta
 Each reseller sees prices marked up by a per-user fee. Resellers pay from an internal wallet.
 Admins manage users, fees, and the brand catalog.
 
-Status as of 2026-10-04: catalog, pricing, cart, wallets, API tokens, and admin fee management work.
-Checkout, order creation, and Bamboo order placement are not built yet.
+Status as of 2026-10-04: catalog, pricing, cart, wallets, API tokens, admin fee management, and checkout
+(order creation, wallet reservation, Bamboo placement and polling) are built. Bamboo fulfilment is untested against the real API.
 
 ## Stack
 
@@ -107,14 +107,34 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
   pending timeout 60 min; supported currencies USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY.
 - `wallets/index` shows the balance and a paginated, filterable ledger. The "Charge" button does nothing yet.
 
-### 6. Orders (planned, not built)
+### 6. Orders and checkout
+`app/Services/CheckoutService.php`, `app/Jobs/PlaceSupplierOrder.php`, `app/Jobs/SyncSupplierOrder.php`
+
 - `OrderStatusEnum`: CREATED -> PROCESSING -> SUCCEEDED | FAILED | PARTIAL_FAILED.
 - `BambooOrderStatusEnum` mirrors Bamboo statuses: Created, Processed, Pending, Succeeded, Failed, PartialFailed.
-- The checkout button in the cart flyout has no handler. The wallet select is a hard-coded "USDT" option.
-- `orders/index` and `transactions/index` render static sample rows.
-- Intended flow (to confirm in the checkout plan): validate `can_place_order` and `is_active`, lock funds,
-  create the Order and OrderItems, place the Bamboo order, store encrypted card codes, then withdraw on
-  success or unlock on failure, and empty the cart.
+- **Checkout** (cart flyout, "Checkout" button, active USD wallets only):
+  1. Refuses inactive users, users without `can_place_order`, an empty cart, non-integer face values,
+     a missing/inactive/non-USD wallet. One checkout per user at a time (cache lock).
+  2. Prices every line with `PricingService` (same formula as the cart): `purchase_amount` = supplier cost in USD,
+     `sale_amount` = cost + fee in USD, rounded to cents; `profit_percentage` = the fee used.
+  3. In one DB transaction: creates the Order (CREATED) and OrderItems (`relation` = product_id, face_value,
+     face_currency) and **locks** `sale_amount` in the wallet (reference `order:{id}`). Then empties the cart and
+     queues `PlaceSupplierOrder` after commit.
+- **PlaceSupplierOrder** (runs once): needs `BAMBOO_ACCOUNT_ID`. Marks PROCESSING, calls Bamboo
+  `orders/checkout` with RequestId `mobo-order-{id}`, then queues `SyncSupplierOrder`. If it fails before the
+  order is marked PROCESSING, nothing reached Bamboo, so `failed()` unlocks the funds and marks FAILED.
+- **SyncSupplierOrder** (every 30 s, up to 40 attempts): `GET orders/{requestId}`.
+  - `Succeeded` and every line has at least `quantity` cards: store cards (encrypted), unlock + withdraw, SUCCEEDED.
+  - `Failed`: unlock, FAILED.
+  - `PartialFailed`, or `Succeeded` with missing cards: store what arrived, keep funds locked, PARTIAL_FAILED.
+  - Anything else: poll again; after 40 attempts the order stays PROCESSING with funds locked.
+  - Orders left locked are logged to the `bamboo` channel for admin review. No admin tooling exists for them yet.
+- Assumed Bamboo response shape (unverified, no sample available): `{status, items: [{productId, cards: [...]}]}`.
+  A wrong guess cannot move money: it leaves the order PROCESSING or PARTIAL_FAILED with funds locked.
+- Lock-then-charge means the purchase must fit in `balance - locked`. Wallet **credit is not usable** for
+  orders, because the wallet package validates locks against balance only.
+- `orders/index` lists the user's orders. Its filter controls are still placeholders.
+- `transactions/index` renders static sample rows.
 
 ### 7. Users, admin, API
 - Fortify login with rate limit 5/min per email+IP; 2FA challenge view; email verification is required for app routes.
@@ -139,7 +159,7 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 | 4 | Fixed | `EnsureUserIsActive` middleware, `CheckoutService` | `is_active` is enforced on every authenticated web route (and on Livewire updates): deactivated users are logged out and sent to login. `can_place_order` is enforced at checkout. |
 | 5 | Medium | `AppServiceProvider` | `CartService` and `FeeCalculatorService` are singletons capturing `auth()->user()` at first resolve: stale in queue workers / Octane, null when unauthenticated. |
 | 6 | Medium | `ExchangeService::rates()` | Returns null before the first refresh but declares `array` (TypeError). The first page load after deploy fails. |
-| 7 | Low | `orders` migration | `paid_at` and `completed_at` are NOT NULL; a CREATED order has neither. |
+| 7 | Fixed | `orders` migration | `paid_at` and `completed_at` were NOT NULL; now nullable. |
 | 8 | Low | `FeeCalculatorService::currency()` | Writes an undeclared property (deprecated since PHP 8.2). |
 | 9 | Low | `orders/index`, `transactions/index`, `admin/users/show` chart | Static mock data. |
 
@@ -148,12 +168,10 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 | # | Question | Status |
 |---|---|---|
 | 1 | Does `exchange_currencies.rates[X]` mean X per 1 USD, or USD per 1 X? If X per USD, `exchange()` must divide, not multiply. | Unknown. Do not change until confirmed. |
-| 2 | Checkout details: lock-then-withdraw vs. direct withdraw; partial failure refunds; which wallet currency. | To settle in the checkout plan. |
+| 2 | Should wallet credit fund orders? Lock-then-charge cannot use credit (package validates locks against balance). | Built as lock-then-charge; credit not usable. |
 
 ## Roadmap decisions
-
 Decision notes only. Each item needs its own plan before implementation.
-
 ### Redis (cache, queue, locks)
 - **Motivation.** `CACHE_STORE`, `QUEUE_CONNECTION` and `SESSION_DRIVER` are all `database` today. Three
   things depend on them being fast and atomic: the `exchange.<currency>.lock` and `checkout:<user>` cache locks,
@@ -169,7 +187,6 @@ Decision notes only. Each item needs its own plan before implementation.
 - **Pick.** (b). Sessions are low-volume; locks and queues are the hot path.
 - **Prerequisites.** `ext-redis` or `predis/predis` (pin a version), a Redis service in CI (`redis:7`), the
   `WALLET_LOG_CHANNEL` and `bamboo` log channels unchanged. Add `php artisan queue:work` to deployment.
-
 ### Elasticsearch (catalog search)
 - **Motivation.** Brand search is `where('name', 'like', "%term%")` on `bamboo_brands` in MongoDB
   (`admin/brands/index`, `admin/users/fees`, `admin/users/show`). Resellers pick a brand from a Flux
@@ -184,7 +201,6 @@ Decision notes only. Each item needs its own plan before implementation.
 - **Pick.** Defer. Start with (a) text index when the catalog exceeds a few thousand brands; move to (c) if
   product-level search is required. Elasticsearch only if analytics over the catalog is also needed.
 - **Prerequisites.** Decide whether resellers search products or only brands; measure current catalog size.
-
 ### Docker (dev parity)
 - **Motivation.** Local setup needs PHP >= 8.4, `ext-mongodb` 2.x, `ext-imagick`, MongoDB 8, Node 22 and Flux
   Pro credentials. CI and the cloud setup script each reproduce this by hand (`.github/workflows/*.yml`,
@@ -197,14 +213,11 @@ Decision notes only. Each item needs its own plan before implementation.
   more to maintain. (c) Keep host installs and document them.
 - **Pick.** (a) once Redis lands, so the compose file covers app, MongoDB, Redis and a queue worker.
 - **Prerequisites.** Flux Pro `auth.json` mounted or passed as a build secret, never baked into the image.
-
 ## Follow-ups
-
 | # | Item | Status |
 |---|---|---|
 | 1 | `composer.json` says `php ^8.2` while `composer.lock` and CI need 8.4; bump to `^8.4` | Separate PR |
-| 2 | `vendor/bin/pint --test` fails on 61 pre-existing files | Format-only PR after the open PRs merge |
-| 3 | Baseline bug: `BrandIntegrationService` calls `SupplierApiFactory::create()` statically (runtime error) | Separate PR with the service fixes |
-| 4 | Admin tooling for PARTIAL_FAILED / stuck PROCESSING orders | Separate PR: admin orders page with Release / Charge |
+| 3 | Bamboo order response shape (`status`, `items[].productId`, `items[].cards`) and whether `GET orders/{id}` takes the RequestId. | Unverified. Test against the Bamboo sandbox before enabling. |
+| 4 | How should admins resolve PARTIAL_FAILED and stuck PROCESSING orders (partial charge, refund)? | No tooling yet; funds stay locked. |
 | 5 | Wallet "Charge" button (top-up) does nothing; needs a payment provider decision | Open |
 | 6 | FX rate direction unverified | Open, see question 1 |
