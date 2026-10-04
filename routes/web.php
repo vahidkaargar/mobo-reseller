@@ -36,7 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
     // admin routes
-    Route::middleware([])->prefix('/admin')->name('admin.')->group(function () {
+    Route::middleware(['role:admin'])->prefix('/admin')->name('admin.')->group(function () {
 
         Volt::route('/users', 'admin.users.index')->name('users.index');
         Volt::route('/users/{user}', 'admin.users.show')->name('users.show');
