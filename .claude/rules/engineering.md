@@ -16,7 +16,11 @@ Triggers: version-specific behavior, breaking changes, unfamiliar library/API, c
 3. Thin evidence: give the best answer, label it "unverified, based on <source>", say what would confirm it. Never fabricate sources.
 
 ## Done means
-- Build passes and `vendor/bin/pint --test` is clean (or name the CI gate that verifies).
+- Gates pass on the changed code, in this order: `vendor/bin/pint` on changed files, `php -l`,
+  `composer analyse` (Larastan; never add new errors to the baseline), `npx --yes jscpd@5.4.0`,
+  `vendor/bin/pest tests/Unit/ArchTest.php`, then the Pest tests for the touched area.
+  The pre-commit hook (`composer run hooks:install`) runs the same gates on staged files.
+  Not available: Enlightn (no Laravel 12 support), archsniffer (no such package; use Pest `arch()`).
 - Relevant Pest tests pass.
 - Security impact stated (auth, money, card codes, PII).
 - Sources cited when research was used.

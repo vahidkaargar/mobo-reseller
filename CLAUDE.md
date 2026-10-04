@@ -21,6 +21,11 @@ Provenance and pinned commits: `.claude/skills/SOURCES.md`.
 | Dev server | `composer run dev` (serve + queue + pail + vite) |
 | Tests | `php artisan test` or `vendor/bin/pest --filter=...` |
 | Format | `vendor/bin/pint` (CI: `vendor/bin/pint` on PHP 8.4) |
+| Static analysis | `composer analyse` (Larastan level 5, `phpstan-baseline.neon` holds 19 pre-existing errors) |
+| Duplication | `npx --yes jscpd@5.4.0` (config `.jscpd.json`, fails above 7%) |
+| Architecture | `vendor/bin/pest tests/Unit/ArchTest.php` (Pest `arch()` rules) |
+| All gates | `composer quality` |
+| Git hook | `composer run hooks:install` links `.githooks/pre-commit` into `.git/hooks/` |
 | Catalog sync | `php artisan bamboo:fetch-catalog` |
 
 Required env beyond `.env.example`: Bamboo SDK credentials. Tests need a MongoDB server (`MONGODB_URI`).

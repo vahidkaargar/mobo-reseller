@@ -37,6 +37,12 @@ jobs:
       - name: Run Pint
         run: vendor/bin/pint
 
+      - name: Run Larastan
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      - name: Check duplication
+        run: npx --yes jscpd@5.4.0 --silent
+
       # - name: Commit Changes
       #   uses: stefanzweifel/git-auto-commit-action@v5
       #   with:

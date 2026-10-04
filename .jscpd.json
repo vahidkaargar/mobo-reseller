@@ -1,0 +1,11 @@
+{
+    "threshold": 7,
+    "minLines": 8,
+    "minTokens": 70,
+    "format": ["php"],
+    "path": ["app", "database", "routes", "config", "resources/views"],
+    "ignore": ["**/vendor/**", "**/node_modules/**", "**/storage/**", "**/public/build/**", "resources/views/vendor/**", "resources/views/flux/**"],
+    "reporters": ["console"],
+    "gitignore": true,
+    "absolute": false
+}

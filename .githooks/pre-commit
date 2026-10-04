@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Pre-commit quality gate. Install once per clone: composer run hooks:install
+# Bypass only in an emergency: git commit --no-verify
+set -euo pipefail
+
+php_files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.php' | grep -v '\.blade\.php$' || true)
+blade_files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.blade.php' || true)
+
+step() { printf '\n==> %s\n' "$1"; }
+
+if [ -n "$php_files" ]; then
+  step "Pint (style)"
+  # shellcheck disable=SC2086
+  vendor/bin/pint --test $php_files
+
+  step "php -l (syntax)"
+  for f in $php_files $blade_files; do
+    case "$f" in *.blade.php) continue ;; esac
+    php -l "$f" >/dev/null
+  done
+fi
+
+if [ -n "$php_files$blade_files" ]; then
+  step "Larastan (static analysis)"
+  vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+  step "jscpd (duplication)"
+  npx --yes jscpd@5.4.0 --silent
+
+  step "Pest (architecture + staged test files; PEST_FULL=1 runs the whole suite)"
+  if [ "${PEST_FULL:-0}" = "1" ]; then
+    vendor/bin/pest
+  else
+    test_files=$(git diff --cached --name-only --diff-filter=ACMR -- 'tests/*Test.php' | grep -v '^tests/Unit/ArchTest.php$' || true)
+    # shellcheck disable=SC2086
+    vendor/bin/pest tests/Unit/ArchTest.php $test_files
+  fi
+fi

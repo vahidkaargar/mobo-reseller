@@ -1,0 +1,115 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Instanceof between App\\Models\\User and Illuminate\\Contracts\\Auth\\MustVerifyEmail will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: app/Actions/Fortify/UpdateUserProfileInformation.php
+
+		-
+			message: '#^Variable \$catalog on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: app/Console/Commands/FetchBambooCatalog.php
+
+		-
+			message: '#^Parameter \#1 \$string of function str expects string\|null, float\|int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Helpers/numbers_helper.php
+
+		-
+			message: '#^Parameter \#1 \$string of static method Illuminate\\Support\\Number\:\:parseFloat\(\) expects string, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Helpers/numbers_helper.php
+
+		-
+			message: '#^Parameter \#2 \$string of function explode expects string, float\|int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Helpers/numbers_helper.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\BambooBrandResource\:\:\$brand_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/BambooBrandResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\BambooBrandResource\:\:\$country\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/BambooBrandResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\BambooBrandResource\:\:\$currency\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/BambooBrandResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\BambooBrandResource\:\:\$image\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/BambooBrandResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\BambooBrandResource\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/BambooBrandResource.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{''Laravel\\\\Fortify\\\\Actions\\\\EnsureLoginIsNotThrottled'', ''Laravel\\\\Fortify\\\\Actions\\\\RedirectIfTwoFactorAuthenticatable'', ''Laravel\\\\Fortify\\\\Actions\\\\AttemptToAuthenticate'', ''Laravel\\\\Fortify\\\\Actions\\\\PrepareAuthenticatedSession''\}\) to function array_filter does not contain falsy values, the array will always stay the same\.$#'
+			identifier: arrayFilter.same
+			count: 1
+			path: app/Providers/FortifyServiceProvider.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Cart\:\:\$items\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/CartService.php
+
+		-
+			message: '#^Method App\\Services\\CartService\:\:__construct\(\) with return type void returns \$this\(App\\Services\\CartService\) but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: app/Services/CartService.php
+
+		-
+			message: '#^Method App\\Services\\CatalogService\:\:__construct\(\) with return type void returns \$this\(App\\Services\\CatalogService\) but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: app/Services/CatalogService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ExchangeCurrency\:\:\$rates\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/ExchangeService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ExchangeCurrency\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/ExchangeService.php
+
+		-
+			message: '#^Access to an undefined property App\\Services\\FeeCalculatorService\:\:\$currency\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/FeeCalculatorService.php
+
+		-
+			message: '#^Method App\\Services\\FeeCalculatorService\:\:__construct\(\) with return type void returns \$this\(App\\Services\\FeeCalculatorService\) but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: app/Services/FeeCalculatorService.php
+
+		-
+			message: '#^Static call to instance method App\\Services\\Suppliers\\Factories\\SupplierApiFactory\:\:create\(\)\.$#'
+			identifier: method.staticCall
+			count: 1
+			path: app/Services/Suppliers/Integrations/BrandIntegrationService.php
