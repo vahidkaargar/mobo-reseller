@@ -118,6 +118,8 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 
 ### 7. Users, admin, API
 - Fortify login with rate limit 5/min per email+IP; 2FA challenge view; email verification is required for app routes.
+- Deactivated users (`is_active = 0`): the `active` middleware on the app route group logs them out on their next
+  request and redirects to login with an error. Admins toggle the flag on `/admin/users/{user}/settings`.
 - Admin pages (`/admin/users`, `/admin/users/{user}`, `/settings`, `/fees`, `/admin/orders`, `/admin/brands`)
   edit `fee_percentage`, `is_active`, `can_place_order`, `has_api`, and per-product fees.
 - Admin access: Laratrust role `admin` (created by migration `insert_admin_role`). Grant with
@@ -134,7 +136,7 @@ usd    = exchange(priced, sale.currency) // ExchangeService rates, base USD, rou
 | 1 | Fixed | `routes/web.php` admin group | Was `middleware([])`: any verified user could open `/admin/*`. Now `role:admin` (Laratrust), persistent on Livewire updates. |
 | 2 | Fixed | `ThumbnailController` | Was an unauthenticated SSRF (fetched any `?url=`). Now `/thumbnail/brands/{brandId}` behind auth; URL read from `bamboo_brands`. |
 | 3 | Fixed | `users.fee_percentage`, `product_fees.fee_percentage` | Were decimal(2,2) (max 0.99) while default is 5 and the admin range is up to 9.99. Widened to decimal(5,2). |
-| 4 | Medium | whole app | `is_active` and `can_place_order` are never enforced. |
+| 4 | Fixed | `EnsureUserIsActive` middleware, `CheckoutService` | `is_active` is enforced on every authenticated web route (and on Livewire updates): deactivated users are logged out and sent to login. `can_place_order` is enforced at checkout. |
 | 5 | Medium | `AppServiceProvider` | `CartService` and `FeeCalculatorService` are singletons capturing `auth()->user()` at first resolve: stale in queue workers / Octane, null when unauthenticated. |
 | 6 | Medium | `ExchangeService::rates()` | Returns null before the first refresh but declares `array` (TypeError). The first page load after deploy fails. |
 | 7 | Low | `orders` migration | `paid_at` and `completed_at` are NOT NULL; a CREATED order has neither. |

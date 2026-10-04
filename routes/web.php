@@ -8,7 +8,7 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'active', 'verified'])->group(function () {
 
     Route::get('/thumbnail/brands/{brandId}', ThumbnailController::class)
         ->whereNumber('brandId')
