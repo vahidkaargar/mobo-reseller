@@ -4,37 +4,25 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Number;
+use RuntimeException;
 use Throwable;
 
 class FeeCalculatorService
 {
     /**
-     * @var array
+     * Per-product fee overrides for the current supplier, keyed by supplier product id.
+     *
+     * @var array<string, string|float>|null
      */
-    private array $fees;
+    private ?array $fees = null;
+
+    private mixed $product = null;
+
+    private ?string $supplier = null;
+
+    public function __construct(private readonly ?User $user) {}
 
     /**
-     * @var mixed
-     */
-    private mixed $product;
-
-    /**
-     * @var string
-     */
-    private string $supplier;
-
-
-    /**
-     * @param User|null $user
-     */
-    public function __construct(private readonly ?User $user)
-    {
-        return $this;
-    }
-
-    /**
-     * @param int|float $amount
-     * @return float
      * @throws Throwable
      */
     public function addFeeTo(int|float $amount): float
@@ -43,59 +31,46 @@ class FeeCalculatorService
     }
 
     /**
-     * @return float
+     * The fee percentage for the selected supplier product: the user's per-product
+     * override when one exists, otherwise the user's default fee.
+     *
      * @throws Throwable
      */
     public function fee(): float
     {
-        throw_if(empty($this->supplier) or empty($this->product), 'supplier and product methods must be called');
+        throw_if(empty($this->supplier) || empty($this->product), 'supplier and product methods must be called');
 
-        if (empty($this->fees)) {
-            $this->fees();
+        $user = $this->user();
+
+        if ($this->fees === null) {
+            $this->fees = $user->fees()
+                ->where('supplier_name', $this->supplier)
+                ->pluck('fee_percentage', 'supplier_id')
+                ->toArray();
         }
 
-        return Number::parseFloat($this->fees[$this->product] ?? $this->user->fee_percentage);
+        return Number::parseFloat((string) ($this->fees[$this->product] ?? $user->fee_percentage));
     }
 
-    /**
-     * @param $supplier
-     * @return $this
-     */
-    public function supplier($supplier): static
+    public function supplier(string $supplier): static
     {
+        if ($supplier !== $this->supplier) {
+            $this->fees = null;
+        }
         $this->supplier = $supplier;
+
         return $this;
     }
 
-    /**
-     * @param $product
-     * @return $this
-     */
-    public function product($product): static
+    public function product(int|string $product): static
     {
         $this->product = $product;
+
         return $this;
     }
 
-    /**
-     * @param $currency
-     * @return $this
-     */
-    public function currency($currency): static
+    private function user(): User
     {
-        $this->currency = $currency;
-        return $this;
-    }
-
-    /**
-     * @return $this
-     */
-    protected function fees(): static
-    {
-        $this->fees = $this->user->fees()
-            ->where('supplier_name', $this->supplier)
-            ->pluck('fee_percentage', 'supplier_id')
-            ->toArray();
-        return $this;
+        return $this->user ?? throw new RuntimeException('FeeCalculatorService needs an authenticated user.');
     }
 }

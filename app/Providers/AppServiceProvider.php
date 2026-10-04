@@ -13,14 +13,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Singleton but user is resolved dynamically per request
-        $this->app->singleton(FeeCalculatorService::class, function ($app) {
-            return new FeeCalculatorService(auth()->user());
-        });
+        // Scoped, not singleton: both services belong to the authenticated user, so they must be
+        // rebuilt per request (queue workers and Octane keep the container alive across requests).
+        $this->app->scoped(FeeCalculatorService::class, fn () => new FeeCalculatorService(auth()->user()));
 
-        $this->app->singleton(CartService::class, function ($app) {
-            return new CartService(auth()->user());
-        });
+        $this->app->scoped(CartService::class, fn () => new CartService(auth()->user()));
     }
 
     /**
@@ -28,7 +25,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
         include app_path('Helpers/helpers.php');
     }
 }
