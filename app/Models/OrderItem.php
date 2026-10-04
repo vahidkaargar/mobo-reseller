@@ -24,5 +24,4 @@ class OrderItem extends Model
         'cards' => 'encrypted:array',
         'supplier' => SuppliersEnum::class,
     ];
-
 }

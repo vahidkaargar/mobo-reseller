@@ -2,8 +2,8 @@
 
 namespace App\Facades;
 
-use Illuminate\Support\Facades\Facade;
 use App\Services\CartService;
+use Illuminate\Support\Facades\Facade;
 
 /**
  * @mixin CartService

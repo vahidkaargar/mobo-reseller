@@ -10,6 +10,7 @@ use MongoDB\Laravel\Eloquent\Model;
 class BambooBrand extends Model
 {
     protected $connection = 'mongodb';
+
     protected $fillable = [
         'brand_id',
         'name',
@@ -18,5 +19,4 @@ class BambooBrand extends Model
         'image',
         'products',
     ];
-
 }

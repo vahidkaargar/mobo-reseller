@@ -12,7 +12,7 @@ enum SuppliersEnum: string
     public function catalog(): CatalogInterface
     {
         return match ($this) {
-            self::BAMBOO => new BambooCatalog(),
+            self::BAMBOO => new BambooCatalog,
         };
     }
 }

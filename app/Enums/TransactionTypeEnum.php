@@ -15,7 +15,6 @@ enum TransactionTypeEnum: string
     case credit_repay = 'credit_repay';
     case interest_charge = 'interest_charge';
 
-
     public function color(): string
     {
         return match ($this) {

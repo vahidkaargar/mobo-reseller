@@ -2,10 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\BambooBrand;
-use App\Models\ProductFee;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder

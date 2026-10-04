@@ -11,9 +11,6 @@ class BambooApi implements SupplierApiInterface
 {
     protected string $baseUrl = 'https://mobo.gifts/api/bamboo';
 
-    /**
-     * @return array
-     */
     public function brands(): array
     {
         try {
@@ -32,10 +29,6 @@ class BambooApi implements SupplierApiInterface
         }
     }
 
-    /**
-     * @param $brand_id
-     * @return array
-     */
     public function brand($brand_id): array
     {
         try {
@@ -54,9 +47,6 @@ class BambooApi implements SupplierApiInterface
         }
     }
 
-    /**
-     * @return PendingRequest
-     */
     protected function http(): PendingRequest
     {
         return Http::acceptJson()->baseUrl($this->baseUrl);

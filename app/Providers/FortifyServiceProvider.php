@@ -32,7 +32,6 @@ class FortifyServiceProvider extends ServiceProvider
             return view('livewire.auth.login');
         });
 
-
         Fortify::authenticateThrough(function () {
             return array_filter([
                 EnsureLoginIsNotThrottled::class,

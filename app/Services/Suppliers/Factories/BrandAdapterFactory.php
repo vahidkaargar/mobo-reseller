@@ -11,7 +11,7 @@ class BrandAdapterFactory
     public static function create(string $supplier): SupplierJsonNormalizerInterface
     {
         return match ($supplier) {
-            'bamboo' => new BambooBrandAdapter(),
+            'bamboo' => new BambooBrandAdapter,
             default => throw new InvalidArgumentException("Unknown supplier: $supplier"),
         };
     }

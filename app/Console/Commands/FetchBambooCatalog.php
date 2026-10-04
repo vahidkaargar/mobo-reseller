@@ -5,12 +5,10 @@ namespace App\Console\Commands;
 use App\Models\BambooBrand;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
-use vahidkaargar\BambooCardPortal\Exceptions\{
-    ConfigurationException,
-};
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use vahidkaargar\BambooCardPortal\Exceptions\ConfigurationException;
 
 class FetchBambooCatalog extends Command
 {
@@ -30,14 +28,9 @@ class FetchBambooCatalog extends Command
 
     /**
      * Bamboo products version two
-     *
-     * @var array
      */
     private array $products = [];
 
-    /**
-     * @var array
-     */
     private array $stats = [
         'brands' => 0,
         'products' => 0,
@@ -67,8 +60,9 @@ class FetchBambooCatalog extends Command
                 $brandCountry = trim($brand['countryCode']);
 
                 // Skip brand if it doesn't have any product
-                if (sizeof($brand['products']) === 0) {
+                if (count($brand['products']) === 0) {
                     Log::driver('bamboo')->error("Brand doesnt have any product: $brandId");
+
                     continue;
                 }
 
@@ -94,20 +88,15 @@ class FetchBambooCatalog extends Command
             $bar->finish();
             $this->newLine(2);
 
-            $this->info('Brands: ' . $this->stats['brands']);
-            $this->info('Products: ' . $this->stats['products']);
-            $this->info('Version two requests: ' . $this->stats['requested_version_two']);
+            $this->info('Brands: '.$this->stats['brands']);
+            $this->info('Products: '.$this->stats['products']);
+            $this->info('Version two requests: '.$this->stats['requested_version_two']);
         } else {
             $this->error($catalog['message']);
         }
     }
 
     /**
-     * @param array $product
-     * @param int $brandId
-     * @param string $brandCountry
-     * @param string $brandCurrency
-     * @return array
      * @throws ConfigurationException
      * @throws ConnectionException
      */
@@ -149,13 +138,11 @@ class FetchBambooCatalog extends Command
         $product['discount'] = round(100 - $discount, 2);
 
         unset($product['minFaceValue'], $product['maxFaceValue'], $product['price'], $product['count'], $product['modifiedDate']);
+
         return $product;
     }
 
     /**
-     * @param string $brandCurrency
-     * @param int $brandId
-     * @return void
      * @throws ConfigurationException
      * @throws ConnectionException
      */
@@ -185,7 +172,6 @@ class FetchBambooCatalog extends Command
     }
 
     /**
-     * @return array
      * @throws ConfigurationException
      * @throws ConnectionException
      */
